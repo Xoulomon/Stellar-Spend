@@ -61,30 +61,43 @@
 npm install
 ```
 
-### 2. Configure env
+### 2. Configure environment variables
 
 ```bash
 cp .env.example .env.local
 ```
 
-Fill in `.env.local`:
+### 3. Fill in `.env.local`
 
-- `PAYCREST_API_KEY`
-- `PAYCREST_WEBHOOK_SECRET`
-- `BASE_PRIVATE_KEY`
-- `BASE_RETURN_ADDRESS`
-- `BASE_RPC_URL` (defaults to `https://mainnet.base.org`)
-- `STELLAR_SOROBAN_RPC_URL`
-- `STELLAR_HORIZON_URL`
-- `NEXT_PUBLIC_BASE_RETURN_ADDRESS`
+Use the inline comments in `.env.example` as the source of truth. The required values are:
 
-### 3. Run
+- `PAYCREST_API_KEY`: server-only Paycrest API key from the Paycrest dashboard
+- `PAYCREST_WEBHOOK_SECRET`: server-only Paycrest webhook signing secret
+- `BASE_PRIVATE_KEY`: server-only private key for the Base payout wallet
+- `BASE_RETURN_ADDRESS`: public Base address used for returns or treasury routing
+- `BASE_RPC_URL`: Base RPC provider URL
+- `STELLAR_SOROBAN_RPC_URL`: server-side Soroban RPC endpoint
+- `STELLAR_HORIZON_URL`: server-side Horizon endpoint
+- `NEXT_PUBLIC_STELLAR_SOROBAN_RPC_URL`: browser-safe Soroban RPC endpoint
+- `NEXT_PUBLIC_BASE_RETURN_ADDRESS`: browser-safe Base return address
+- `NEXT_PUBLIC_STELLAR_USDC_ISSUER`: Stellar USDC issuer account used to filter the correct Horizon trustline
+
+### 4. Keep secrets server-only
+
+Do not prefix secrets with `NEXT_PUBLIC_`.
+
+- `PAYCREST_API_KEY` must never become `NEXT_PUBLIC_PAYCREST_API_KEY`
+- `BASE_PRIVATE_KEY` must never become `NEXT_PUBLIC_BASE_PRIVATE_KEY`
+
+The app validates this at startup and throws a clear error if required env vars are missing or if a secret is exposed publicly.
+
+### 5. Run
 
 ```bash
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:3001`.
 
 ## Storage
 

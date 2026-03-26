@@ -1,40 +1,57 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import FormCard, { type OfframpPayload, type QuoteResult } from "@/components/FormCard";
 import RightPanel from "@/components/RightPanel";
 import RecentOfframpsTable from "@/components/RecentOfframpsTable";
 import ProgressSteps from "@/components/ProgressSteps";
 import { TransactionProgressModal } from "@/components/TransactionProgressModal";
+import { Header } from "@/components/Header";
+import { useStellarWallet } from "@/hooks/useStellarWallet";
+import { useWalletFlow } from "@/hooks/useWalletFlow";
 import { OfframpStep } from "@/types/stellaramp";
 import { usePollPayoutStatus } from "@/hooks/usePollPayoutStatus";
 import { TransactionStorage } from "@/lib/transaction-storage";
 
 export default function Home() {
-  const [isConnected, setIsConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
+  const { wallet, isConnected, isConnecting: isWalletConnecting, error, connect, disconnect } = useStellarWallet();
+  const { variant, steps, setConnecting, setConnected, setPreConnect } = useWalletFlow();
+
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("");
   const [quote, setQuote] = useState<QuoteResult | null>(null);
-  
-  // Modal state
   const [modalStep, setModalStep] = useState<OfframpStep>("idle");
   const [modalError, setModalError] = useState<string | undefined>();
 
-  const handleConnect = useCallback(() => {
-    setIsConnecting(true);
-    setTimeout(() => {
-      setIsConnected(true);
-      setIsConnecting(false);
-    }, 1000);
-  }, []);
+  // Sync wallet flow state with wallet connection state
+  useEffect(() => {
+    if (isWalletConnecting) {
+      setConnecting();
+    } else if (isConnected) {
+      setConnected();
+    } else {
+      setPreConnect();
+    }
+  }, [isWalletConnecting, isConnected, setConnecting, setConnected, setPreConnect]);
+
+  const handleConnect = useCallback(async () => {
+    setConnecting();
+    const result = await connect();
+    if (result) {
+      setConnected();
+    } else {
+      setPreConnect();
+    }
+  }, [connect, setConnecting, setConnected, setPreConnect]);
 
   const handleDisconnect = useCallback(() => {
-    setIsConnected(false);
+    // useStellarWallet.disconnect() calls adapter.disconnect() + TransactionStorage.clear()
+    disconnect();
+    setPreConnect();
     setAmount("");
     setCurrency("");
     setQuote(null);
-  }, []);
+  }, [disconnect, setPreConnect]);
 
   const { pollPayoutStatus } = usePollPayoutStatus();
 
@@ -103,20 +120,22 @@ export default function Home() {
         errorMessage={modalError}
         onClose={() => { setModalStep("idle"); setModalError(undefined); }}
       />
-      
+
       <Header
-        subtitle="Offramp Dashboard"
+        subtitle={variant.subtitle}
         isConnected={isConnected}
-        isConnecting={isConnecting}
+        isConnecting={isWalletConnecting}
+        walletAddress={wallet?.publicKey}
         onConnect={handleConnect}
         onDisconnect={handleDisconnect}
       />
+
       <section className="border border-[#333333] px-[2.6rem] py-8 max-[1100px]:p-4 overflow-hidden mt-6">
         <div className="grid grid-cols-[1fr_370px] gap-6 max-[1100px]:grid-cols-1 overflow-hidden w-full">
           <div data-testid="FormCard">
             <FormCard
               isConnected={isConnected}
-              isConnecting={isConnecting}
+              isConnecting={isWalletConnecting}
               onConnect={handleConnect}
               onSubmit={handleSubmit}
               onQuoteChange={setQuote}
@@ -124,13 +143,14 @@ export default function Home() {
               onCurrencyChange={setCurrency}
             />
           </div>
+
           <div
             data-testid="RightPanel"
             className="col-start-2 row-start-1 row-span-2 max-[1100px]:col-start-1 max-[1100px]:row-span-1"
           >
             <RightPanel
               isConnected={isConnected}
-              isConnecting={isConnecting}
+              isConnecting={isWalletConnecting}
               amount={amount}
               quote={quote}
               isLoadingQuote={false}
@@ -138,11 +158,17 @@ export default function Home() {
               onConnect={handleConnect}
             />
           </div>
+
           <div>
             <RecentOfframpsTable />
           </div>
-          <div className="col-span-1 min-[1101px]:col-span-2 mt-4 max-[1100px]:block">
-            <ProgressSteps isConnected={isConnected} isConnecting={isConnecting} />
+
+          <div className="col-span-1 min-[1101px]:col-span-2 mt-4">
+            <ProgressSteps
+              isConnected={isConnected}
+              isConnecting={isWalletConnecting}
+              steps={steps}
+            />
           </div>
         </div>
       </section>

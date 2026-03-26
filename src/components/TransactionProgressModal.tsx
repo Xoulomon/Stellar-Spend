@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+
 import { cn } from "@/lib/cn";
 import { OfframpStep } from "@/types/stellaramp";
 
@@ -29,7 +30,7 @@ const STEP_LABELS: Record<OfframpStep, string> = {
   success: "Transaction Complete",
   error: "Transaction Failed",
 };
-
+ main
 export function TransactionProgressModal({
   step,
   errorMessage,
@@ -77,15 +78,11 @@ export function TransactionProgressModal({
           <div className="mb-8 relative h-20 w-20 flex items-center justify-center">
              {step === "success" ? (
                <div className="h-16 w-16 rounded-full bg-green-500/20 border border-green-500 flex items-center justify-center animate-[scale-in_0.5s_ease-out]">
-                 <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                 </svg>
+                 <CheckIcon className="w-8 h-8 text-green-500" />
                </div>
              ) : step === "error" ? (
                <div className="h-16 w-16 rounded-full bg-red-500/20 border border-red-500 flex items-center justify-center animate-[shake_0.5s_ease-in-out]">
-                 <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                 </svg>
+                 <XIcon className="w-8 h-8 text-red-500" />
                </div>
              ) : (
                <div className="h-16 w-16 border-2 border-[#c9a962]/30 border-t-[#c9a962] rounded-full animate-spin" />
@@ -129,7 +126,7 @@ export function TransactionProgressModal({
 
           {step === "error" && errorMessage && (
             <div className="w-full mt-4 p-4 bg-red-500/10 border border-red-500/20">
-              <p className="text-[10px] text-red-400 font-mono break-words leading-relaxed">
+              <p className="text-[10px] text-red-400 font-mono break-words leading-relaxed text-center">
                 {errorMessage}
               </p>
             </div>
@@ -183,5 +180,25 @@ export function TransactionProgressModal({
         }
       `}</style>
     </div>
+  );
+}
+
+// Helper Components for clean SVG icons
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+    </svg>
+  );
+}
+
+function XIcon({ className }: { className?: string }) {
+  return (
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+ main
   );
 }

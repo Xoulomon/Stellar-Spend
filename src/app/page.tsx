@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useState, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
+main
 import FormCard, { type OfframpPayload, type QuoteResult } from "@/components/FormCard";
 import RightPanel from "@/components/RightPanel";
 import RecentOfframpsTable from "@/components/RecentOfframpsTable";
@@ -9,6 +10,7 @@ import { TransactionProgressModal } from "@/components/TransactionProgressModal"
 import { Header } from "@/components/Header";
 import { useStellarWallet } from "@/hooks/useStellarWallet";
 import { useWalletFlow } from "@/hooks/useWalletFlow";
+ main
 import { OfframpStep } from "@/types/stellaramp";
 
 export default function Home() {
@@ -45,6 +47,7 @@ export default function Home() {
     }
   }, [connect, setConnecting, setConnected, setPreConnect]);
 
+
   const handleDisconnect = useCallback(() => {
     disconnect();
     setPreConnect();
@@ -60,19 +63,24 @@ export default function Home() {
       setModalStep("awaiting-signature");
       await new Promise(r => setTimeout(r, 2000));
 
-      setModalStep("submitting");
-      await new Promise(r => setTimeout(r, 2000));
-
-      setModalStep("processing");
-      await new Promise(r => setTimeout(r, 2000));
-
-      setModalStep("settling");
-      await new Promise(r => setTimeout(r, 2000));
-
-      setModalStep("success");
+  const handleSubmit = useCallback(async (_payload: OfframpPayload) => {
+    try {
+      // Show modal and initiate step
+      setModalStep("initiating");
+      
+      // Define the simulated transaction flow
+      const flow: OfframpStep[] = ["awaiting-signature", "submitting", "processing", "settling", "success"];
+      
+      for (const step of flow) {
+        await new Promise(r => setTimeout(r, 1500));
+        setModalStep(step);
+      }
     } catch (err) {
       console.error("Transaction failed:", err);
       setModalStep("error");
+    }
+  }, [setModalStep]);
+ main
     }
   }, []);
 
@@ -81,6 +89,7 @@ export default function Home() {
       <TransactionProgressModal 
         step={modalStep} 
         errorMessage={error || undefined}
+ main
         onClose={() => setModalStep("idle")} 
       />
       
@@ -92,7 +101,7 @@ export default function Home() {
         onConnect={handleConnect}
         onDisconnect={handleDisconnect}
       />
-
+ main
       <section className="border border-[#333333] px-[2.6rem] py-8 max-[1100px]:p-4 overflow-hidden mt-6">
         <div className="grid grid-cols-[1fr_370px] gap-6 max-[1100px]:grid-cols-1 overflow-hidden w-full">
           <div data-testid="FormCard">
@@ -125,7 +134,6 @@ export default function Home() {
           <div>
             <RecentOfframpsTable />
           </div>
-          
           <div className="col-span-1 min-[1101px]:col-span-2 mt-4 max-[1100px]:block">
             {/* The ProgressSteps component now consumes the memoized steps from useWalletFlow */}
             <ProgressSteps 
@@ -133,6 +141,7 @@ export default function Home() {
               isConnecting={isWalletConnecting} 
               steps={steps} 
             />
+ main
           </div>
         </div>
       </section>

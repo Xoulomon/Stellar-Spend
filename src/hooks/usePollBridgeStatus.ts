@@ -38,18 +38,25 @@ export function usePollBridgeStatus() {
 
           if (!res.ok) {
             consecutiveErrors++;
-            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) return;
+            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+              // Soft exit — don't block payout polling
+              return;
+            }
             await new Promise<void>((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
             continue;
           }
         } catch {
           consecutiveErrors++;
-          if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) return;
+          if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+            return;
+          }
           await new Promise<void>((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
           continue;
         }
 
+        // Reset on successful HTTP response
         consecutiveErrors = 0;
+
         const status = data.status;
 
         if (status) {
@@ -73,6 +80,7 @@ export function usePollBridgeStatus() {
           await new Promise<void>((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
         }
       }
+
       // Timeout — best-effort, resolve silently
     },
     []

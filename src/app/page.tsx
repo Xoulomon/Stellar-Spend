@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useRef } from "react";
 import FormCard, { type OfframpPayload } from "@/components/FormCard";
+import { useState, useCallback, useEffect } from "react";
+import FormCard, { type OfframpPayload, type QuoteResult } from "@/components/FormCard";
 import RightPanel from "@/components/RightPanel";
 import RecentOfframpsTable from "@/components/RecentOfframpsTable";
 import ProgressSteps from "@/components/ProgressSteps";
@@ -18,11 +20,18 @@ import type { QuoteResult } from "@/components/FormCard";
 export default function Home() {
   const { wallet, isConnected, isConnecting, connect, disconnect, signTransaction } =
     useStellarWallet();
+import { Header } from "@/components/Header";
+import { useStellarWallet } from "@/hooks/useStellarWallet";
+import { useWalletFlow } from "@/hooks/useWalletFlow";
+import { OfframpStep } from "@/types/stellaramp";
+
+export default function Home() {
+  const { wallet, isConnected, isConnecting: isWalletConnecting, error, connect, disconnect } = useStellarWallet();
+  const { variant, steps, setConnecting, setConnected, setPreConnect } = useWalletFlow();
 
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("");
   const [quote, setQuote] = useState<QuoteResult | null>(null);
-
   const [modalStep, setModalStep] = useState<OfframpStep>("idle");
   const [modalError, setModalError] = useState<string | undefined>(undefined);
   const [formResetKey, setFormResetKey] = useState(0);
@@ -249,12 +258,12 @@ export default function Home() {
     <main className="min-h-screen p-4 bg-[#0a0a0a]">
       <TransactionProgressModal
         step={modalStep}
-        errorMessage={modalError}
+        errorMessage={error || undefined}
         onClose={() => setModalStep("idle")}
       />
 
       <Header
-        subtitle="Offramp Dashboard"
+        subtitle={variant.subtitle}
         isConnected={isConnected}
         isConnecting={isConnecting}
         walletAddress={wallet?.publicKey}
@@ -276,13 +285,14 @@ export default function Home() {
               onCurrencyChange={setCurrency}
             />
           </div>
+
           <div
             data-testid="RightPanel"
             className="col-start-2 row-start-1 row-span-2 max-[1100px]:col-start-1 max-[1100px]:row-span-1"
           >
             <RightPanel
               isConnected={isConnected}
-              isConnecting={isConnecting}
+              isConnecting={isWalletConnecting}
               amount={amount}
               quote={quote}
               isLoadingQuote={false}
@@ -290,11 +300,17 @@ export default function Home() {
               onConnect={handleConnect}
             />
           </div>
+
           <div>
             <RecentOfframpsTable />
           </div>
-          <div className="col-span-1 min-[1101px]:col-span-2 mt-4 max-[1100px]:block">
-            <ProgressSteps isConnected={isConnected} isConnecting={isConnecting} />
+
+          <div className="col-span-1 min-[1101px]:col-span-2 mt-4">
+            <ProgressSteps
+              isConnected={isConnected}
+              isConnecting={isWalletConnecting}
+              steps={steps}
+            />
           </div>
         </div>
       </section>

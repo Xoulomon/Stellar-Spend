@@ -1,54 +1,105 @@
 import { NextResponse } from 'next/server';
+import { env } from '@/lib/env';
 
 export interface GasFeeOptions {
-  native: { int: string; float: string } | null;
-  stablecoin: { int: string; float: string } | null;
+  feeOptions: {
+    native: { int: string; float: string };
+    stablecoin: { int: string; float: string };
+  };
 }
+
+// In-memory cache for gas fee options
+let cachedFeeOptions: GasFeeOptions | null = null;
+let cacheTimestamp: number = 0;
+const CACHE_DURATION = 60 * 1000; // 60 seconds
 
 /**
  * GET /api/offramp/bridge/gas-fee-options
  * 
- * Fetches gas fee options from the bridge provider.
+ * Fetches gas fee options from Allbridge SDK.
  * Returns native (XLM) and stablecoin (USDC) fee options.
- * 
- * The fees are typically:
- * - Native (XLM): network fees paid in XLM (small amount)
- * - Stablecoin: a percentage or fixed amount deducted from the bridged amount
+ * Caches result for 60 seconds.
  */
 export async function GET(): Promise<NextResponse<GasFeeOptions | { error: string }>> {
   try {
-    // TODO: Integrate with actual bridge provider when available
-    // For now, we return estimated values based on typical Stellar network fees
-    
-    // Typical Stellar network fee is 0.00001 XLM per operation (min 1 operation)
-    // Convert to USDC equivalent for display
-    const nativeFeeInt = "100";  // 0.00001 XLM in stroops
-    const nativeFeeFloat = "0.00001 XLM";
-    
-    // Stablecoin fee is typically a small percentage (e.g., 0.5%) or fixed amount
-    // For USDC, this might be around $0.01-$0.50
-    const stablecoinFeeInt = "1";  // $0.01 in cents
-    const stablecoinFeeFloat = "$0.01";
-    
+    // Check cache
+    const now = Date.now();
+    if (cachedFeeOptions && now - cacheTimestamp < CACHE_DURATION) {
+      return NextResponse.json(cachedFeeOptions, {
+        headers: { 'Cache-Control': 'public, max-age=60' },
+      });
+    }
+
+    // Initialize Allbridge SDK
+    const { AllbridgeCoreSdk, nodeRpcUrlsDefault } = await import('@allbridge/bridge-core-sdk');
+
+    const sdk = new AllbridgeCoreSdk({
+      ...nodeRpcUrlsDefault,
+      sorobanNetworkPassphrase: 'Public Global Stellar Network ; September 2015',
+      ...(env.public.NEXT_PUBLIC_STELLAR_SOROBAN_RPC_URL && {
+        sorobanRpc: env.public.NEXT_PUBLIC_STELLAR_SOROBAN_RPC_URL,
+      }),
+      ...(env.server.BASE_RPC_URL && {
+        ETH: env.server.BASE_RPC_URL,
+      }),
+    });
+
+    // Get chain details to find USDC tokens
+    const chainDetails = await sdk.chainDetailsMap();
+
+    let stellarChain: any = null;
+    let baseChain: any = null;
+
+    for (const [, chain] of Object.entries(chainDetails)) {
+      const chainObj = chain as any;
+      if (chainObj.name?.toLowerCase().includes('stellar') || chainObj.name?.toLowerCase().includes('soroban')) {
+        stellarChain = chainObj;
+      }
+      if (chainObj.name?.toLowerCase().includes('ethereum') || chainObj.name?.toLowerCase().includes('base')) {
+        baseChain = chainObj;
+      }
+    }
+
+    if (!stellarChain || !baseChain) {
+      throw new Error('Failed to fetch chain details from Allbridge');
+    }
+
+    // Find USDC tokens on both chains
+    const stellarUsdc = stellarChain.tokens.find((t: any) => t.symbol === 'USDC');
+    const baseUsdc = baseChain.tokens.find((t: any) => t.symbol === 'USDC');
+
+    if (!stellarUsdc || !baseUsdc) {
+      throw new Error('USDC token not found on one or both chains');
+    }
+
+    // Get gas fee options from Allbridge SDK
+    const gasFeeOptions = await sdk.getAllbridgeGasFeeOptions(stellarUsdc, baseUsdc);
+
     const result: GasFeeOptions = {
-      native: {
-        int: nativeFeeInt,
-        float: nativeFeeFloat,
-      },
-      stablecoin: {
-        int: stablecoinFeeInt,
-        float: stablecoinFeeFloat,
+      feeOptions: {
+        native: {
+          int: gasFeeOptions.native.int.toString(),
+          float: gasFeeOptions.native.float.toString(),
+        },
+        stablecoin: {
+          int: gasFeeOptions.stablecoin.int.toString(),
+          float: gasFeeOptions.stablecoin.float.toString(),
+        },
       },
     };
-    
-    return NextResponse.json(result);
+
+    // Cache the result
+    cachedFeeOptions = result;
+    cacheTimestamp = now;
+
+    return NextResponse.json(result, {
+      headers: { 'Cache-Control': 'public, max-age=60' },
+    });
   } catch (error) {
     console.error('Error fetching gas fee options:', error);
-    
-    // Return null values instead of error to avoid breaking the UI
-    return NextResponse.json({
-      native: null,
-      stablecoin: null,
-    });
+    return NextResponse.json(
+      { error: 'Failed to fetch gas fee options' },
+      { status: 500 }
+    );
   }
 }

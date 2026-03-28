@@ -1,69 +1,97 @@
 import { NextResponse } from 'next/server';
+import { env } from '@/lib/env';
 
-const PAYCREST_API_URL = process.env.PAYCREST_API_URL || 'https://api.paycrest.io/v1';
+interface Currency {
+  code: string;
+  name: string;
+  symbol: string;
+}
+
+class PaycrestAdapter {
+  private apiKey: string;
+  private apiUrl = 'https://api.paycrest.io/v1';
+
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
+  }
+
+  async getCurrencies(): Promise<Currency[]> {
+    const response = await fetch(`${this.apiUrl}/currencies`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'API-Key': this.apiKey,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch currencies: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Transform Paycrest response to our format
+    const currencies = Array.isArray(data)
+      ? data.map((c: any) => ({
+          code: c.code || c.currency || '',
+          name: c.name || '',
+          symbol: c.symbol || '',
+        }))
+      : data.currencies?.map((c: any) => ({
+          code: c.code || c.currency || '',
+          name: c.name || '',
+          symbol: c.symbol || '',
+        })) || [];
+
+    return currencies;
+  }
+}
+
+// In-memory cache for currencies
+let cachedCurrencies: Currency[] | null = null;
+let cacheTimestamp: number = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 /**
  * GET /api/offramp/currencies
  * 
  * Fetches supported fiat currencies from Paycrest API.
  * Returns list of currencies with code, name, and symbol.
+ * Caches result for 5 minutes.
  */
 export async function GET() {
   try {
-    const apiKey = process.env.PAYCREST_API_KEY;
-    
-    if (!apiKey) {
-      console.warn('PAYCREST_API_KEY not configured, returning default currencies');
-      // Return default currencies as fallback
-      return NextResponse.json([
-        { code: 'NGN', name: 'Nigerian Naira', symbol: '₦' },
-        { code: 'GHS', name: 'Ghanaian Cedi', symbol: '₵' },
-        { code: 'KES', name: 'Kenyan Shilling', symbol: 'KSh' },
-      ]);
+    // Check cache
+    const now = Date.now();
+    if (cachedCurrencies && now - cacheTimestamp < CACHE_DURATION) {
+      return NextResponse.json(
+        { data: cachedCurrencies },
+        {
+          headers: { 'Cache-Control': 'public, max-age=300' },
+        }
+      );
     }
 
-    const response = await fetch(`${PAYCREST_API_URL}/currencies`, {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    // Instantiate PaycrestAdapter
+    const paycrest = new PaycrestAdapter(env.server.PAYCREST_API_KEY);
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('Paycrest API error (currencies):', response.status, error);
-      // Return default currencies on error
-      return NextResponse.json([
-        { code: 'NGN', name: 'Nigerian Naira', symbol: '₦' },
-        { code: 'GHS', name: 'Ghanaian Cedi', symbol: '₵' },
-        { code: 'KES', name: 'Kenyan Shilling', symbol: 'KSh' },
-      ]);
-    }
+    // Get currencies
+    const currencies = await paycrest.getCurrencies();
 
-    const data = await response.json();
-    
-    // Transform Paycrest response to our format
-    // Expected format: { currencies: [{ code, name, symbol, ... }] }
-    const currencies = Array.isArray(data) 
-      ? data.map((c: { code?: string; currency?: string; name?: string; symbol?: string }) => ({
-          code: c.code || c.currency || '',
-          name: c.name || '',
-          symbol: c.symbol || '',
-        }))
-      : data.currencies?.map((c: { code?: string; currency?: string; name?: string; symbol?: string }) => ({
-          code: c.code || c.currency || '',
-          name: c.name || '',
-          symbol: c.symbol || '',
-        })) || [];
+    // Cache the result
+    cachedCurrencies = currencies;
+    cacheTimestamp = now;
 
-    return NextResponse.json(currencies);
+    return NextResponse.json(
+      { data: currencies },
+      {
+        headers: { 'Cache-Control': 'public, max-age=300' },
+      }
+    );
   } catch (error) {
     console.error('Error fetching currencies from Paycrest:', error);
-    // Return default currencies on exception
-    return NextResponse.json([
-      { code: 'NGN', name: 'Nigerian Naira', symbol: '₦' },
-      { code: 'GHS', name: 'Ghanaian Cedi', symbol: '₵' },
-      { code: 'KES', name: 'Kenyan Shilling', symbol: 'KSh' },
-    ]);
+    return NextResponse.json(
+      { error: 'Failed to fetch currencies' },
+      { status: 500 }
+    );
   }
 }

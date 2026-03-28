@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+
+export const maxDuration = 10;
+
 // import { PAYCREST_WEBHOOK_SECRET } from '@/lib/env';
 
 // TODO: handle Paycrest webhook events

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { env } from '@/lib/env';
 
+export const maxDuration = 10;
+
 interface PaycrestHttpError extends Error {
   status: number;
 }

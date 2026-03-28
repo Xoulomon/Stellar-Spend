@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const maxDuration = 10;
+
 const PAYCREST_API_URL = process.env.PAYCREST_API_URL || 'https://api.paycrest.io/v1';
 
 interface VerifyAccountRequest {
@@ -27,7 +29,7 @@ export async function POST(request: Request) {
     }
 
     const apiKey = process.env.PAYCREST_API_KEY;
-    
+
     if (!apiKey) {
       console.warn('PAYCREST_API_KEY not configured, cannot verify account');
       // Return mock response for development
@@ -54,7 +56,7 @@ export async function POST(request: Request) {
     if (!response.ok) {
       const error = await response.text();
       console.error('Paycrest API error (verify-account):', response.status, error);
-      
+
       // Return empty account name for invalid accounts (not an error toast)
       return NextResponse.json({
         accountName: '',
@@ -64,16 +66,16 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
-    
+
     // Extract account name from Paycrest response
     // Expected formats:
     // - { accountName: "JOHN DOE" }
     // - { data: { accountName: "JOHN DOE" } }
     // - { data: "JOHN DOE" }
-    const accountName = data.accountName 
-      ?? data.data?.accountName 
-      ?? data.data?.account_name 
-      ?? data.data 
+    const accountName = data.accountName
+      ?? data.data?.accountName
+      ?? data.data?.account_name
+      ?? data.data
       ?? '';
 
     return NextResponse.json({

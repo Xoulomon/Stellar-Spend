@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { env } from '@/lib/env';
 
+export const maxDuration = 20;
+
 export interface GasFeeOptions {
   feeOptions: {
     native: { int: string; float: string };

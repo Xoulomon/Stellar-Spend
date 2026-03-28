@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { env } from '@/lib/env';
 
+export const maxDuration = 10;
+
 const PAYCREST_BASE_URL = 'https://api.paycrest.io/v1';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ orderId: string }> }) {

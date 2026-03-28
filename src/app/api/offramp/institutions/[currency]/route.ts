@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const maxDuration = 10;
+
 const PAYCREST_API_URL = process.env.PAYCREST_API_URL || 'https://api.paycrest.io/v1';
 
 /**
@@ -11,7 +13,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ currenc
   try {
     const { currency } = await params;
     const apiKey = process.env.PAYCREST_API_KEY;
-    
+
     if (!apiKey) {
       console.warn('PAYCREST_API_KEY not configured, returning default institutions');
       // Return default Nigerian banks as fallback
@@ -58,18 +60,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ currenc
     }
 
     const data = await response.json();
-    
+
     // Transform Paycrest response to our format
     // Expected format: { institutions: [{ code, name, ... }] }
-    const institutions = Array.isArray(data) 
+    const institutions = Array.isArray(data)
       ? data.map((i: { code?: string; bankCode?: string; name?: string; bankName?: string }) => ({
-          code: i.code || i.bankCode || '',
-          name: i.name || i.bankName || '',
-        }))
+        code: i.code || i.bankCode || '',
+        name: i.name || i.bankName || '',
+      }))
       : data.institutions?.map((i: { code?: string; bankCode?: string; name?: string; bankName?: string }) => ({
-          code: i.code || i.bankCode || '',
-          name: i.name || i.bankName || '',
-        })) || [];
+        code: i.code || i.bankCode || '',
+        name: i.name || i.bankName || '',
+      })) || [];
 
     return NextResponse.json(institutions);
   } catch (error) {

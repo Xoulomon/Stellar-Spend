@@ -3,6 +3,8 @@ import { env } from '@/lib/env';
 import { validateAmount } from '@/lib/offramp/utils/validation';
 import { fetchPaycrestQuote, buildQuote, calculateBridgeAmount } from '@/lib/offramp/utils/quote-fetcher';
 
+export const maxDuration = 20;
+
 // Stablecoin fee in USDC (example: 0.5 USDC)
 const STABLECOIN_FEE = '0.5';
 
@@ -70,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     // Initialize Allbridge SDK (cached singleton promise)
     const { AllbridgeCoreSdk, nodeRpcUrlsDefault, ChainSymbol } = await import('@allbridge/bridge-core-sdk');
-    
+
     const sdk = new AllbridgeCoreSdk({
       ...nodeRpcUrlsDefault,
       sorobanNetworkPassphrase: 'Public Global Stellar Network ; September 2015',
@@ -84,11 +86,11 @@ export async function POST(request: NextRequest) {
 
     // Get chain details to find USDC tokens
     const chainDetails = await sdk.chainDetailsMap();
-    
+
     // Find Stellar and Base chains
     let stellarChain: any = null;
     let baseChain: any = null;
-    
+
     for (const [, chain] of Object.entries(chainDetails)) {
       const chainObj = chain as any;
       if (chainObj.name?.toLowerCase().includes('stellar') || chainObj.name?.toLowerCase().includes('soroban')) {

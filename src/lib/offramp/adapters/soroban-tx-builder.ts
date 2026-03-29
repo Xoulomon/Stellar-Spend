@@ -40,7 +40,7 @@ function encodeTokenAddress(address: string): Buffer {
 function generateNonce(): bigint {
   const buffer = randomBytes(32);
   const nonce = buffer.readBigInt64BE(0);
-  return nonce < 0n ? -nonce : nonce;
+  return nonce < BigInt(0) ? BigInt(-1) * nonce : nonce;
 }
 
 interface BuildSwapAndBridgeTxParams {
@@ -125,7 +125,7 @@ export async function buildSwapAndBridgeTx(
   // Extend auth entry expiration by +500 ledgers
   if (simulationResponse.result) {
     const authEntries = simulationResponse.result.auth || [];
-    authEntries.forEach((entry) => {
+    authEntries.forEach((entry: any) => {
       if (entry.credentials?.addressCredentials?.signatureExpirationLedger) {
         entry.credentials.addressCredentials.signatureExpirationLedger += 500;
       }

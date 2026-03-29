@@ -169,16 +169,35 @@ export async function POST(request: NextRequest) {
     response.headers.set('X-Request-Id', requestId);
     logger.logSuccess(200);
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Build TX error:', error);
 
     const message = extractErrorMessage(error);
 
     // Parse common simulation errors
-    if (message.includes('insufficient') || message.includes('reserve')) {
-      logger.logError(500, 'Insufficient XLM reserve for transaction');
+    if (message.includes('resulting balance is not within the allowed range')) {
+      const userFriendly = "Insufficient XLM balance for native gas fee. Your remaining XLM would fall below Stellar's minimum account reserve. Switch to USDC fee payment or add more XLM.";
+      logger.logError(500, userFriendly);
       return NextResponse.json(
-        { error: 'Insufficient XLM reserve for transaction' },
+        { error: userFriendly },
+        { status: 500, headers: { 'X-Request-Id': requestId } }
+      );
+    }
+
+    if (message.includes('contract call failed') && message.includes('transfer')) {
+      const userFriendly = "A token transfer in the bridge contract failed during simulation. This usually means insufficient balance for the amount + fees.";
+      logger.logError(500, userFriendly);
+      return NextResponse.json(
+        { error: userFriendly },
+        { status: 500, headers: { 'X-Request-Id': requestId } }
+      );
+    }
+
+    // Generic simulation error handling
+    if (message.includes('Simulation failed')) {
+      logger.logError(500, message);
+      return NextResponse.json(
+        { error: message },
         { status: 500, headers: { 'X-Request-Id': requestId } }
       );
     }

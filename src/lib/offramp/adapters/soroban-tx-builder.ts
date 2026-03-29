@@ -4,10 +4,22 @@ import { randomBytes } from 'crypto';
 /**
  * Convert float amount to on-chain integer representation
  */
-function floatToInt(amount: string, decimals: number): bigint {
-  const factor = BigInt(10 ** decimals);
-  const floatAmount = parseFloat(amount);
-  return BigInt(Math.floor(floatAmount * Number(factor)));
+/**
+ * Convert float amount to on-chain integer representation
+ */
+export function floatToInt(amount: string, decimals: number): string {
+  const [intPartRaw, fracPartRaw = ''] = amount.split('.');
+  const intPart = intPartRaw || '0';
+  let fracPart = fracPartRaw;
+
+  if (fracPart.length > decimals) {
+    fracPart = fracPart.substring(0, decimals);
+  } else {
+    fracPart = fracPart.padEnd(decimals, '0');
+  }
+
+  const result = BigInt(intPart) * (BigInt(10) ** BigInt(decimals)) + BigInt(fracPart);
+  return result.toString();
 }
 
 /**
@@ -37,10 +49,10 @@ function encodeTokenAddress(address: string): Buffer {
 /**
  * Generate random nonce as positive BigInt
  */
-function generateNonce(): bigint {
+export function getNonceBigInt(): bigint {
   const buffer = randomBytes(32);
   const nonce = buffer.readBigInt64BE(0);
-  return nonce < BigInt(0) ? BigInt(-1) * nonce : nonce;
+  return nonce < BigInt(0) ? -nonce : nonce;
 }
 
 interface BuildSwapAndBridgeTxParams {
@@ -77,8 +89,12 @@ export async function buildSwapAndBridgeTx(
   // Load source account
   const sourceAccount = await rpcServer.getAccount(sourceAccountPublicKey);
 
+  // Get current ledger for expiration extension
+  const latestLedgerResponse = await rpcServer.getLatestLedger();
+  const latestLedger = latestLedgerResponse.sequence;
+
   // Convert amount to on-chain integer
-  const amountInt = floatToInt(amount, decimals);
+  const amountInt = BigInt(floatToInt(amount, decimals));
 
   // Encode recipient EVM address as 32-byte buffer
   const recipientBuffer = encodeEvmAddress(recipientEvmAddress);
@@ -87,7 +103,7 @@ export async function buildSwapAndBridgeTx(
   const receiveTokenBuffer = encodeTokenAddress(receiveTokenAddress);
 
   // Generate random nonce
-  const nonce = generateNonce();
+  const nonce = getNonceBigInt();
 
   // Build contract call using ABI spec
   const contract = new StellarSdk.Contract(contractAddress);
@@ -122,19 +138,24 @@ export async function buildSwapAndBridgeTx(
     throw new Error(`Simulation failed: ${JSON.stringify(simulationResponse)}`);
   }
 
-  // Extend auth entry expiration by +500 ledgers
-  if (simulationResponse.result) {
-    const authEntries = simulationResponse.result.auth || [];
-    authEntries.forEach((entry: any) => {
-      if (entry.credentials?.addressCredentials?.signatureExpirationLedger) {
-        entry.credentials.addressCredentials.signatureExpirationLedger += 500;
+  // Extend auth entry expiration by setting to latestLedger + 500 (~40 minutes)
+  if (simulationResponse.result?.auth) {
+    simulationResponse.result.auth.forEach((entry: any) => {
+      // Check for address credentials (sorobanCredentialsAddress in the requirement)
+      if (entry.credentials?.address) {
+        const oldExp = entry.credentials.address.signatureExpirationLedger;
+        const newExp = latestLedger + 500;
+        
+        console.log(`Extending auth expiration: old=${oldExp}, new=${newExp}`);
+        entry.credentials.address.signatureExpirationLedger = newExp;
       }
     });
   }
 
-  // Assemble transaction with bumped fee (1.5x of base + minResourceFee)
+  // Assemble transaction with modified auth entries
   const assembledTx = StellarSdk.rpc.assembleTransaction(tx, simulationResponse);
   
+  // Apply bumped fee (1.5x of base + minResourceFee)
   const baseFee = parseInt(assembledTx.fee);
   const minResourceFee = parseInt(simulationResponse.minResourceFee || '0');
   const bumpedFee = Math.ceil((baseFee + minResourceFee) * 1.5);
@@ -144,3 +165,4 @@ export async function buildSwapAndBridgeTx(
   // Return base64 XDR
   return assembledTx.toXDR();
 }
+

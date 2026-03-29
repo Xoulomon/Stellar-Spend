@@ -3,7 +3,8 @@ export type WalletFlowState = 'pre_connect' | 'connecting' | 'connected';
 export interface RecentOfframpRow {
   readonly txHash: string;
   readonly usdc: string;
-  readonly naira: string;
+  readonly fiat: string;
+  readonly currency: string;
   readonly status: 'SETTLING' | 'COMPLETE';
 }
 

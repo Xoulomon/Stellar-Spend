@@ -278,11 +278,26 @@ function FeeMethodSelector({ value, onChange, usdcFee, xlmFee, disabled }: FeeMe
   );
 }
 
+function getCurrencySymbol(currency: string): string {
+  const symbols: Record<string, string> = {
+    NGN: "₦",
+    USD: "$",
+    EUR: "€",
+    GBP: "£",
+    KES: "KSh",
+    GHS: "₵",
+    ZAR: "R",
+  };
+  return symbols[currency.toUpperCase()] || currency.toUpperCase();
+}
+
 function formatPayout(amount: string, currency: string): string {
   const num = parseFloat(amount);
   if (isNaN(num)) return "—";
+  const symbol = getCurrencySymbol(currency);
+  
   if (currency.toUpperCase() === "NGN") {
-    return `₦${new Intl.NumberFormat("en-NG", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num)}`;
+    return `${symbol}${new Intl.NumberFormat("en-NG", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num)}`;
   }
   try {
     return new Intl.NumberFormat("en-US", {
@@ -292,7 +307,7 @@ function formatPayout(amount: string, currency: string): string {
       maximumFractionDigits: 2,
     }).format(num);
   } catch {
-    return `${currency.toUpperCase()} ${num.toFixed(2)}`;
+    return `${symbol} ${num.toFixed(2)}`;
   }
 }
 
@@ -308,8 +323,8 @@ function PayoutBox({ quote, currency }: PayoutBoxProps) {
         <span className="text-[10px] tracking-[0.18em] text-[#777777] uppercase">Estimated Payout</span>
         <span className="text-[10px] text-[#777777]">
           Rate: {currency.toUpperCase() === "NGN"
-            ? `₦${new Intl.NumberFormat("en-NG").format(quote.rate)}`
-            : quote.rate.toFixed(4)} / USDC
+            ? `${getCurrencySymbol(currency)}${new Intl.NumberFormat("en-NG").format(quote.rate)}`
+            : `${getCurrencySymbol(currency)} ${quote.rate.toFixed(4)}`} / USDC
         </span>
       </div>
       <span className="font-space-grotesk font-bold text-[#c9a962] text-lg tabular-nums">

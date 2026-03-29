@@ -8,6 +8,7 @@ import { OfframpStep } from "@/types/stellaramp";
 type TransactionProgressModalProps = {
   step: OfframpStep;
   errorMessage?: string;
+  txHash?: string;
   onClose: () => void;
 };
 
@@ -33,6 +34,7 @@ const STEP_LABELS: Record<OfframpStep, string> = {
 export function TransactionProgressModal({
   step,
   errorMessage,
+  txHash,
   onClose,
 }: TransactionProgressModalProps) {
   const [isVisible, setIsVisible] = useState(false);
@@ -134,10 +136,22 @@ export function TransactionProgressModal({
           )}
 
           {step === "success" && (
-            <p className="text-sm text-[#aaaaaa] text-center mb-6 leading-relaxed">
-              Funds have been sent to your bank account. <br />
-              Thank you for using Stellar-Spend.
-            </p>
+            <>
+              <p className="text-sm text-[#aaaaaa] text-center mb-4 leading-relaxed">
+                Funds have been sent to your bank account. <br />
+                Thank you for using Stellar-Spend.
+              </p>
+              {txHash && (
+                <a
+                  href={`https://stellar.expert/explorer/public/tx/${txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-[#c9a962] hover:text-[#d4b982] transition-colors underline decoration-dotted text-center block mb-2"
+                >
+                  View transaction on Stellar Explorer →
+                </a>
+              )}
+            </>
           )}
 
           {showCloseButton && (

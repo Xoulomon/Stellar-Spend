@@ -24,6 +24,7 @@ export default function Home() {
   const [quote, setQuote] = useState<QuoteResult | null>(null);
   const [modalStep, setModalStep] = useState<OfframpStep>("idle");
   const [modalError, setModalError] = useState<string | undefined>(undefined);
+  const [modalTxHash, setModalTxHash] = useState<string | undefined>(undefined);
   const [currentPayload, setCurrentPayload] = useState<OfframpPayload | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [formResetKey, setFormResetKey] = useState(0);
@@ -193,6 +194,7 @@ export default function Home() {
         }
 
         TransactionStorage.update(txId, { stellarTxHash: txHash });
+        setModalTxHash(txHash);
 
         // 11. Start parallel polling: bridge (best-effort) + payout (critical path)
         setModalStep("processing");
@@ -251,7 +253,8 @@ export default function Home() {
       <TransactionProgressModal 
         step={modalStep}
         errorMessage={modalError}
-        onClose={() => { setModalStep("idle"); setModalError(undefined); }}
+        txHash={modalTxHash}
+        onClose={() => { setModalStep("idle"); setModalError(undefined); setModalTxHash(undefined); }}
       />
 
       <Header

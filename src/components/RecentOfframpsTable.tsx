@@ -8,9 +8,9 @@ import type { RecentOfframpRow } from "@/types/stellaramp";
 // ---------------------------------------------------------------------------
 
 const MOCK_ROWS: RecentOfframpRow[] = [
-  { txHash: "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2", usdc: "120.00", naira: "₦192,000", status: "COMPLETE" },
-  { txHash: "f9e8d7c6b5a4f9e8d7c6b5a4f9e8d7c6b5a4f9e8d7c6b5a4f9e8d7c6b5a4f9e8", usdc: "50.50",  naira: "₦80,800",  status: "SETTLING" },
-  { txHash: "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12", usdc: "200.00", naira: "₦320,000", status: "COMPLETE" },
+  { txHash: "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2", usdc: "120.00", fiat: "₦192,000", currency: "NGN", status: "COMPLETE" },
+  { txHash: "f9e8d7c6b5a4f9e8d7c6b5a4f9e8d7c6b5a4f9e8d7c6b5a4f9e8d7c6b5a4f9e8", usdc: "50.50",  fiat: "₦80,800", currency: "NGN", status: "SETTLING" },
+  { txHash: "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12", usdc: "200.00", fiat: "₦320,000", currency: "NGN", status: "COMPLETE" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -28,6 +28,13 @@ export interface RecentOfframpsTableProps {
 function truncateTxHash(hash: string): string {
   if (hash.length <= 12) return hash;
   return `${hash.slice(0, 6)}...${hash.slice(-6)}`;
+}
+
+function getCurrencyColumnHeader(rows: ReadonlyArray<RecentOfframpRow>): string {
+  if (rows.length === 0) return "FIAT";
+  const firstCurrency = rows[0].currency;
+  const allSameCurrency = rows.every(row => row.currency === firstCurrency);
+  return allSameCurrency ? firstCurrency.toUpperCase() : "FIAT";
 }
 
 function StatusBadge({ status }: { status: RecentOfframpRow["status"] }) {
@@ -60,7 +67,8 @@ export default function RecentOfframpsTable({ rows = MOCK_ROWS }: RecentOfframps
         <span className="text-[10px] tracking-[0.2em] text-[#777777] uppercase">
           Recent Offramps
         </span>
-        <button
+        <a
+          href="/history"
           className={cn(
             "text-[10px] tracking-widest uppercase text-[#c9a962] border border-[#c9a962] px-3 py-1",
             "hover:bg-[#c9a962] hover:text-[#0a0a0a] transition-colors duration-150",
@@ -68,7 +76,7 @@ export default function RecentOfframpsTable({ rows = MOCK_ROWS }: RecentOfframps
           )}
         >
           View All
-        </button>
+        </a>
       </div>
 
       {/* Horizontally scrollable table */}
@@ -77,7 +85,7 @@ export default function RecentOfframpsTable({ rows = MOCK_ROWS }: RecentOfframps
           {/* Gold header row */}
           <thead>
             <tr className="bg-[#c9a962]">
-              {["TX HASH", "USDC", "NAIRA", "STATUS"].map((col) => (
+              {["TX HASH", "USDC", getCurrencyColumnHeader(rows), "STATUS"].map((col) => (
                 <th
                   key={col}
                   className="px-5 py-2.5 text-left text-[10px] tracking-[0.18em] font-semibold text-[#0a0a0a] uppercase whitespace-nowrap"
@@ -109,13 +117,20 @@ export default function RecentOfframpsTable({ rows = MOCK_ROWS }: RecentOfframps
                   )}
                 >
                   <td className="px-5 py-3 text-xs text-[#777777] font-mono whitespace-nowrap">
-                    {truncateTxHash(row.txHash)}
+                    <a
+                      href={`https://stellar.expert/explorer/public/tx/${row.txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-[#c9a962] transition-colors duration-150 underline decoration-dotted"
+                    >
+                      {truncateTxHash(row.txHash)}
+                    </a>
                   </td>
                   <td className="px-5 py-3 text-xs text-white tabular-nums whitespace-nowrap">
                     {row.usdc} USDC
                   </td>
                   <td className="px-5 py-3 text-xs text-white tabular-nums whitespace-nowrap">
-                    {row.naira}
+                    {row.fiat}
                   </td>
                   <td className="px-5 py-3 whitespace-nowrap">
                     <StatusBadge status={row.status} />

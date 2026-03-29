@@ -22,12 +22,27 @@ const NGN_FORMATTER = new Intl.NumberFormat("en-NG", {
   maximumFractionDigits: 0,
 });
 
+function getCurrencySymbol(currency: string): string {
+  const symbols: Record<string, string> = {
+    NGN: "₦",
+    USD: "$",
+    EUR: "€",
+    GBP: "£",
+    KES: "KSh",
+    GHS: "₵",
+    ZAR: "R",
+  };
+  return symbols[currency.toUpperCase()] || currency.toUpperCase();
+}
+
 function formatFiat(value: string | number, currency: string): string {
   const num = typeof value === "string" ? parseFloat(value) : value;
   if (isNaN(num)) return "—";
 
+  const symbol = getCurrencySymbol(currency);
+
   if (currency.toUpperCase() === "NGN") {
-    return `₦${NGN_FORMATTER.format(num)}`;
+    return `${symbol}${NGN_FORMATTER.format(num)}`;
   }
 
   try {
@@ -39,7 +54,7 @@ function formatFiat(value: string | number, currency: string): string {
     }).format(num);
   } catch {
     // Fallback for unknown currency codes
-    return `${currency.toUpperCase()} ${new Intl.NumberFormat("en-US", {
+    return `${symbol} ${new Intl.NumberFormat("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(num)}`;
@@ -81,7 +96,7 @@ function HeroPanel({
 
   if (!isConnected && !isConnecting) {
     heroLabel = "WALLET REQUIRED";
-    heroValue = <span className="text-[#777777]">₦ --</span>;
+    heroValue = <span className="text-[#777777]">{getCurrencySymbol(currency || "NGN")} --</span>;
     heroMeta = "Connect wallet to preview payout";
   } else if (isConnecting) {
     heroLabel = "CONNECTING";

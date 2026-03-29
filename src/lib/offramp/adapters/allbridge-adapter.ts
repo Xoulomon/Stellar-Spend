@@ -1,4 +1,4 @@
-import { AllbridgeCoreSdk, nodeRpcUrlsDefault } from '@allbridge/bridge-core-sdk';
+import { AllbridgeCoreSdk, nodeRpcUrlsDefault, ChainDetailsMap, TokenWithChainDetails } from '@allbridge/bridge-core-sdk';
 
 /**
  * Initialize the Allbridge Core SDK with proper RPC URLs
@@ -35,4 +35,44 @@ export function initializeAllbridgeSdk(): AllbridgeCoreSdk {
   }
 
   return new AllbridgeCoreSdk(rpcUrls);
+}
+
+interface AllbridgeTokenInfo {
+  chain: ChainDetailsMap[string];
+  usdc: TokenWithChainDetails;
+}
+
+/**
+ * Fetch Stellar and Base USDC token information from Allbridge SDK
+ */
+export async function getAllbridgeTokens(sdk: AllbridgeCoreSdk): Promise<{
+  stellar: AllbridgeTokenInfo;
+  base: AllbridgeTokenInfo;
+}> {
+  const chainDetailsMap = await sdk.chainDetailsMap();
+
+  // Extract Stellar chain (SRB) and find USDC token
+  const stellarChain = chainDetailsMap.SRB;
+  if (!stellarChain) {
+    throw new Error('Stellar chain (SRB) not found in Allbridge chain details');
+  }
+  const stellarUsdc = stellarChain.tokens.find((token) => token.symbol === 'USDC');
+  if (!stellarUsdc) {
+    throw new Error('USDC token not found on Stellar chain');
+  }
+
+  // Extract Base chain (BAS) and find USDC token
+  const baseChain = chainDetailsMap.BAS;
+  if (!baseChain) {
+    throw new Error('Base chain (BAS) not found in Allbridge chain details');
+  }
+  const baseUsdc = baseChain.tokens.find((token) => token.symbol === 'USDC');
+  if (!baseUsdc) {
+    throw new Error('USDC token not found on Base chain');
+  }
+
+  return {
+    stellar: { chain: stellarChain, usdc: stellarUsdc },
+    base: { chain: baseChain, usdc: baseUsdc },
+  };
 }

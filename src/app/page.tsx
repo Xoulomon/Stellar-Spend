@@ -250,6 +250,13 @@ export default function Home() {
 
   return (
     <main className="min-h-screen p-4 bg-[#0a0a0a]">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-accent focus:text-bg focus:border focus:border-accent"
+      >
+        Skip to main content
+      </a>
+
       <TransactionProgressModal 
         step={modalStep}
         errorMessage={modalError}
@@ -266,7 +273,7 @@ export default function Home() {
         onDisconnect={handleDisconnect}
       />
 
-      <section className="border border-[#333333] px-[2.6rem] py-8 max-[1100px]:p-4 overflow-hidden mt-6">
+      <section id="main-content" className="border border-[#333333] px-[2.6rem] py-8 max-[1100px]:p-4 overflow-hidden mt-6">
         <div className="grid grid-cols-[1fr_370px] gap-6 max-[1100px]:grid-cols-1 overflow-hidden w-full">
           <div data-testid="FormCard">
             <FormCard

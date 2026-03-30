@@ -658,8 +658,15 @@ export default function FormCard({
     }
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey && isFormValid && ctaState === "ready") {
+      e.preventDefault();
+      handleSubmitForm();
+    }
+  };
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6" onKeyDown={handleKeyDown}>
       <div className="bg-[#111111] border border-[#333333] p-6 flex flex-col gap-6">
         <InputField
           label="Amount (USDC)"
@@ -721,8 +728,10 @@ export default function FormCard({
         <button
           onClick={ctaState === "disconnected" ? onConnect : handleSubmitForm}
           disabled={getCtaDisabled(ctaState)}
+          aria-label={getCtaLabel(ctaState)}
           className={cn(
             "w-full py-4 text-xs font-bold tracking-[0.2em] transition-all duration-200",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a962] focus-visible:ring-offset-2 focus-visible:ring-offset-[#111111]",
             ctaState === "ready"
               ? "bg-[#c9a962] text-black hover:bg-[#d4b982]"
               : "bg-[#222222] text-[#555555] cursor-not-allowed border border-[#333333]",

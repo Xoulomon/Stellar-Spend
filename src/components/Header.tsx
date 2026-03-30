@@ -1,6 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/cn";
+import { ThemeToggle } from "./ThemeToggle";
+import { CopyButton } from "./CopyButton";
 
 export interface HeaderProps {
   subtitle: string;
@@ -41,6 +43,9 @@ function WalletButton({
       {isConnected && walletType && (
         <span className="text-xs text-slate-500 tracking-widest">{walletType.toUpperCase()}</span>
       )}
+      {isConnected && walletAddress && (
+        <CopyButton text={walletAddress} label="" className="text-xs" />
+      )}
       <button
         onClick={isConnected ? onDisconnect : onConnect}
         disabled={disabled}
@@ -72,7 +77,7 @@ export function Header({
   onDisconnect,
 }: HeaderProps) {
   return (
-    <header className="w-full px-6 py-5 flex items-start justify-between gap-6 max-[720px]:flex-col max-[720px]:items-start">
+    <header className="w-full px-6 py-5 flex items-start justify-between gap-6 max-[720px]:flex-col max-[720px]:items-start" role="banner">
       {/* Left: title + subtitle */}
       <div className="flex flex-col gap-1">
         <h1
@@ -86,14 +91,17 @@ export function Header({
 
       {/* Right: wallet button + balances */}
       <div className="flex flex-col items-end gap-2 max-[720px]:items-start">
-        <WalletButton
-          isConnected={isConnected}
-          isConnecting={isConnecting}
-          walletAddress={walletAddress}
-          walletType={walletType}
-          onConnect={onConnect}
-          onDisconnect={onDisconnect}
-        />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <WalletButton
+            isConnected={isConnected}
+            isConnecting={isConnecting}
+            walletAddress={walletAddress}
+            walletType={walletType}
+            onConnect={onConnect}
+            onDisconnect={onDisconnect}
+          />
+        </div>
 
         {isConnected && (
           <div className="flex flex-col items-end gap-0.5 max-[720px]:items-start">

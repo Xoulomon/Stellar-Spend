@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react";
 
 import { cn } from "@/lib/cn";
 import { OfframpStep } from "@/types/stellaramp";
+import { CopyButton } from "./CopyButton";
+import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 
 type TransactionProgressModalProps = {
   step: OfframpStep;
@@ -47,10 +49,17 @@ export function TransactionProgressModal({
     }
   }, [step]);
 
-  if (!isVisible || step === "idle") return null;
-
   const isTerminal = step === "success" || step === "error";
   const showCloseButton = isTerminal;
+
+  useKeyboardNavigation({
+    onEscape: () => {
+      if (isTerminal) onClose();
+    },
+    enabled: isVisible && isTerminal,
+  });
+
+  if (!isVisible || step === "idle") return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -64,6 +73,8 @@ export function TransactionProgressModal({
       <div 
         role="dialog"
         aria-modal="true"
+        aria-labelledby="modal-title"
+        aria-describedby="modal-description"
         className={cn(
           "relative w-full max-w-md bg-[#0a0a0a] border border-[#333333] transition-all duration-500 overflow-hidden",
           "shadow-[0_0_50px_rgba(201,169,98,0.15)]"
@@ -92,11 +103,11 @@ export function TransactionProgressModal({
              )}
           </div>
 
-          <h2 className="text-xl font-bold text-white tracking-widest uppercase mb-2">
+          <h2 id="modal-title" className="text-xl font-bold text-white tracking-widest uppercase mb-2">
             {step === "error" ? "ERROR" : step === "success" ? "SUCCESS" : "IN PROGRESS"}
           </h2>
           
-          <p className="text-xs text-[#777777] tracking-[0.2em] uppercase mb-8 text-center">
+          <p id="modal-description" className="text-xs text-[#777777] tracking-[0.2em] uppercase mb-8 text-center">
             {STEP_LABELS[step]}
           </p>
 
@@ -142,14 +153,21 @@ export function TransactionProgressModal({
                 Thank you for using Stellar-Spend.
               </p>
               {txHash && (
-                <a
-                  href={`https://stellar.expert/explorer/public/tx/${txHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-[#c9a962] hover:text-[#d4b982] transition-colors underline decoration-dotted text-center block mb-2"
-                >
-                  View transaction on Stellar Explorer →
-                </a>
+                <div className="w-full flex flex-col gap-2 items-center">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-[#777777]">TX Hash:</span>
+                    <code className="text-xs text-[#c9a962] font-mono">{txHash.slice(0, 8)}...{txHash.slice(-8)}</code>
+                    <CopyButton text={txHash} label="" className="text-xs" />
+                  </div>
+                  <a
+                    href={`https://stellar.expert/explorer/public/tx/${txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-[#c9a962] hover:text-[#d4b982] transition-colors underline decoration-dotted text-center"
+                  >
+                    View transaction on Stellar Explorer →
+                  </a>
+                </div>
               )}
             </>
           )}
@@ -157,7 +175,8 @@ export function TransactionProgressModal({
           {showCloseButton && (
             <button
               onClick={onClose}
-              className="mt-4 w-full py-3 bg-[#c9a962] text-black text-xs font-bold tracking-[0.2em] hover:bg-[#d4b982] transition-colors"
+              autoFocus
+              className="mt-4 w-full py-3 bg-[#c9a962] text-black text-xs font-bold tracking-[0.2em] hover:bg-[#d4b982] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]"
             >
               DISMISS
             </button>

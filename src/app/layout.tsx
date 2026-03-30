@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
+import { ToastProvider } from "@/contexts/ToastContext";
+import { ToastContainer } from "@/components/Toast";
 
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
@@ -26,7 +28,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body className={`${ibmPlexMono.variable} ${spaceGrotesk.variable} font-ibm-plex-mono`}>
-        {children}
+        <ToastProvider>
+          {children}
+          <ToastContainer />
+        </ToastProvider>
       </body>
     </html>
   );

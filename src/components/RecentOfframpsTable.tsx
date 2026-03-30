@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/cn";
 import type { RecentOfframpRow } from "@/types/stellaramp";
+import { CopyButton } from "./CopyButton";
 
 // ---------------------------------------------------------------------------
 // Mock data — replaced by real TransactionStorage rows when wired up
@@ -61,6 +62,8 @@ export default function RecentOfframpsTable({ rows = MOCK_ROWS }: RecentOfframps
     <div
       data-testid="RecentOfframpsTable"
       className="border border-[#333333] bg-[#111111]"
+      role="region"
+      aria-label="Recent offramp transactions"
     >
       {/* Section header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-[#333333]">
@@ -74,6 +77,7 @@ export default function RecentOfframpsTable({ rows = MOCK_ROWS }: RecentOfframps
             "hover:bg-[#c9a962] hover:text-[#0a0a0a] transition-colors duration-150",
             "focus:outline-none focus-visible:ring-1 focus-visible:ring-[#c9a962]"
           )}
+          aria-label="View all offramp transactions"
         >
           View All
         </a>
@@ -81,13 +85,14 @@ export default function RecentOfframpsTable({ rows = MOCK_ROWS }: RecentOfframps
 
       {/* Horizontally scrollable table */}
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[520px] border-collapse">
+        <table className="w-full min-w-[520px] border-collapse" aria-label="Recent offramp transactions table">
           {/* Gold header row */}
           <thead>
             <tr className="bg-[#c9a962]">
               {["TX HASH", "USDC", getCurrencyColumnHeader(rows), "STATUS"].map((col) => (
                 <th
                   key={col}
+                  scope="col"
                   className="px-5 py-2.5 text-left text-[10px] tracking-[0.18em] font-semibold text-[#0a0a0a] uppercase whitespace-nowrap"
                 >
                   {col}
@@ -117,14 +122,17 @@ export default function RecentOfframpsTable({ rows = MOCK_ROWS }: RecentOfframps
                   )}
                 >
                   <td className="px-5 py-3 text-xs text-[#777777] font-mono whitespace-nowrap">
-                    <a
-                      href={`https://stellar.expert/explorer/public/tx/${row.txHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-[#c9a962] transition-colors duration-150 underline decoration-dotted"
-                    >
-                      {truncateTxHash(row.txHash)}
-                    </a>
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={`https://stellar.expert/explorer/public/tx/${row.txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-[#c9a962] transition-colors duration-150 underline decoration-dotted"
+                      >
+                        {truncateTxHash(row.txHash)}
+                      </a>
+                      <CopyButton text={row.txHash} label="" className="text-[10px]" />
+                    </div>
                   </td>
                   <td className="px-5 py-3 text-xs text-white tabular-nums whitespace-nowrap">
                     {row.usdc} USDC

@@ -9,6 +9,15 @@
   --text: #ffffff;
 }
 
+[data-theme="light"] {
+  --bg: #f5f5f5;
+  --panel: #ffffff;
+  --line: #e0e0e0;
+  --muted: #666666;
+  --accent: #b8922e;
+  --text: #0a0a0a;
+}
+
 @theme inline {
   --color-bg: var(--bg);
   --color-panel: var(--panel);
@@ -32,9 +41,37 @@ html, body {
   background: radial-gradient(circle at top right, #1a1a1a 0%, var(--bg) 45%);
   color: var(--text);
   font-family: var(--font-ibm-plex-mono-source), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+[data-theme="light"] html,
+[data-theme="light"] body {
+  background: radial-gradient(circle at top right, #e8e8e8 0%, var(--bg) 45%);
 }
 
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.sr-only:focus,
+.sr-only:active {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
 
 @keyframes pulse {
   0%, 100% { transform: scale(1); filter: brightness(1); }
@@ -95,4 +132,14 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 @utility racing-border-content {
   background: color-mix(in srgb, var(--color-panel) 88%, black);
 
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

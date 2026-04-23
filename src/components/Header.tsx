@@ -77,6 +77,8 @@ export function Header({
   onConnect,
   onDisconnect,
 }: HeaderProps) {
+  const { rate, flash } = useFxRate();
+
   return (
     <header className="w-full px-6 py-5 flex flex-col gap-3" role="banner">
       {/* Top row: title + wallet */}
@@ -90,6 +92,18 @@ export function Header({
           STELLAR-SPEND
         </h1>
         <p className="text-xs text-[#777777] tracking-widest uppercase">{subtitle}</p>
+        <span
+          aria-live="polite"
+          aria-label="Live FX rate"
+          className={cn(
+            "mt-1 inline-block self-start px-2 py-0.5 text-[10px] tracking-widest uppercase border border-[#c9a962]/40 text-[#c9a962] transition-colors duration-300",
+            flash && "bg-[#c9a962]/20"
+          )}
+        >
+          {rate != null
+            ? `LIVE RATE: ₦${Math.round(rate).toLocaleString()} / USDC`
+            : "LIVE RATE: —"}
+        </span>
       </div>
 
       {/* Right: wallet button + balances */}

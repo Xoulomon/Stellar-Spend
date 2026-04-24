@@ -1,0 +1,42 @@
+import { NextResponse, type NextRequest } from 'next/server';
+import {
+  performManualReconciliation,
+  type ManualReconciliationAction,
+} from '@/lib/reconciliation';
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { transactionId, action, notes, resolvedBy } = body;
+
+    if (!transactionId || typeof transactionId !== 'string') {
+      return NextResponse.json({ error: 'transactionId is required' }, { status: 400 });
+    }
+
+    if (!action || !['retry', 'mark_resolved', 'investigate'].includes(action)) {
+      return NextResponse.json(
+        { error: 'action must be one of: retry, mark_resolved, investigate' },
+        { status: 400 }
+      );
+    }
+
+    const reconciliationAction: ManualReconciliationAction = {
+      transactionId,
+      action,
+      notes,
+      resolvedBy,
+    };
+
+    const result = await performManualReconciliation(reconciliationAction);
+
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error('Manual reconciliation error:', error);
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : 'Failed to perform manual reconciliation',
+      },
+      { status: 500 }
+    );
+  }
+}

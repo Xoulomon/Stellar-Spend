@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDashboardMetrics, recordUptimeCheck } from '@/lib/monitoring';
 import { getTransactionQueue } from '@/lib/priority-queue';
 import { getTransactionAnalytics } from '@/lib/transaction-analytics';
+import { getApiMetrics, getDbMetrics, getVitalsMetrics, getPerfAlerts } from '@/lib/performance';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,14 +21,22 @@ export async function GET() {
   }
   recordUptimeCheck(healthOk, Date.now() - start);
 
-  const monitoring = getDashboardMetrics();
-  const queueMetrics = getTransactionQueue().getMetrics();
-  const transactionAnalytics = await getTransactionAnalytics();
+  const [monitoring, queueMetrics, transactionAnalytics] = await Promise.all([
+    Promise.resolve(getDashboardMetrics()),
+    Promise.resolve(getTransactionQueue().getMetrics()),
+    getTransactionAnalytics(),
+  ]);
 
   return NextResponse.json({
     ok: true,
     monitoring,
     queue: queueMetrics,
     transactions: transactionAnalytics,
+    performance: {
+      api: getApiMetrics(),
+      db: getDbMetrics(),
+      vitals: getVitalsMetrics(),
+      alerts: getPerfAlerts(),
+    },
   });
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { registry } from "./src/lib/api-versioning/registry";
+import { recordApiTiming } from "./src/lib/performance";
 
 // Matches /api/v{n}/... and captures the version segment
 const VERSIONED_PATH_RE = /^\/api\/(v\d+)(\/.*)?$/;
@@ -48,22 +49,34 @@ function addLegacyDeprecationHeaders(response: NextResponse, legacyPath: string)
 }
 
 export function middleware(request: NextRequest): NextResponse {
+    const start = Date.now();
     const { pathname } = request.nextUrl;
+
+    function respond(response: NextResponse): NextResponse {
+        recordApiTiming({
+            route: pathname.replace(/\/[0-9a-f-]{8,}/gi, '/:id'), // normalise IDs
+            method: request.method,
+            durationMs: Date.now() - start,
+            statusCode: response.status,
+            timestamp: start,
+        });
+        return response;
+    }
 
     // 1. Check for versioned URL path: /api/v{n}/*
     const versionedMatch = VERSIONED_PATH_RE.exec(pathname);
     if (versionedMatch) {
         const version = versionedMatch[1];
         if (!registry.isKnown(version)) {
-            return NextResponse.json(
+            return respond(NextResponse.json(
                 { error: "API version not supported" },
                 { status: 404 }
-            );
+            ));
         }
         // Known version — pass through, add X-API-Version header
         const response = NextResponse.next();
         response.headers.set("X-API-Version", version.replace(/^v/, ""));
-        return response;
+        return respond(response);
     }
 
     // 2. Check for unversioned /api/* paths with version headers
@@ -74,25 +87,25 @@ export function middleware(request: NextRequest): NextResponse {
         if (version !== null) {
             if (!registry.isKnown(version)) {
                 const supported = registry.getAll().map((e) => e.version);
-                return NextResponse.json(
+                return respond(NextResponse.json(
                     { error: "Unsupported API version", supported },
                     { status: 400 }
-                );
+                ));
             }
             // Rewrite URL to versioned equivalent
             const url = request.nextUrl.clone();
             url.pathname = `/api/${version}/${subpath}`;
-            return NextResponse.rewrite(url);
+            return respond(NextResponse.rewrite(url));
         }
 
         // Legacy route with no version headers — add deprecation headers
         const response = NextResponse.next();
         addLegacyDeprecationHeaders(response, subpath);
-        return response;
+        return respond(response);
     }
 
     // 3. Pass through all other requests unchanged
-    return NextResponse.next();
+    return respond(NextResponse.next());
 }
 
 export const config = {

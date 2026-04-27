@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Transaction } from "@/lib/transaction-storage";
+import { TransactionStorage } from "@/lib/transaction-storage";
 import { useStellarWallet } from "@/hooks/useStellarWallet";
 import { Header } from "@/components/Header";
 import { CopyButton } from "@/components/CopyButton";
@@ -101,6 +102,8 @@ export default function HistoryPage() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteInput, setNoteInput] = useState("");
 
   useEffect(() => {
     if (!wallet?.publicKey) {
@@ -144,6 +147,14 @@ export default function HistoryPage() {
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     setFilters((prev) => ({ ...prev, [key]: value }));
 
+  const saveNote = (id: string) => {
+    TransactionStorage.updateNote(id, noteInput);
+    setTransactions((prev) =>
+      prev.map((tx) => (tx.id === id ? { ...tx, note: noteInput.slice(0, 500) } : tx)),
+    );
+    setEditingNoteId(null);
+  };
+
   const toggleSort = (field: SortField) =>
     setFilters((prev) => ({
       ...prev,
@@ -155,13 +166,14 @@ export default function HistoryPage() {
   const filtered = useMemo(() => {
     let result = [...transactions];
 
-    // Search by ID or tx hash
+    // Search by ID, tx hash, or note
     if (filters.search.trim()) {
       const q = filters.search.trim().toLowerCase();
       result = result.filter(
         (tx) =>
           tx.id.toLowerCase().includes(q) ||
-          (tx.stellarTxHash?.toLowerCase().includes(q) ?? false),
+          (tx.stellarTxHash?.toLowerCase().includes(q) ?? false) ||
+          (tx.note?.toLowerCase().includes(q) ?? false),
       );
     }
 
@@ -301,7 +313,7 @@ export default function HistoryPage() {
                     type="text"
                     value={filters.search}
                     onChange={(e) => set("search", e.target.value)}
-                    placeholder="TX hash or ID"
+                    placeholder="TX hash, ID, or note"
                     aria-label="Search transactions"
                     className={cn(
                       "w-48 bg-[#0a0a0a] border border-[#333333] px-3 py-2",
@@ -482,6 +494,9 @@ export default function HistoryPage() {
                       <th className="px-5 py-2.5 text-left text-[10px] tracking-[0.18em] font-semibold text-[#0a0a0a] uppercase whitespace-nowrap">
                         STATUS
                       </th>
+                      <th className="px-5 py-2.5 text-left text-[10px] tracking-[0.18em] font-semibold text-[#0a0a0a] uppercase whitespace-nowrap">
+                        NOTE
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -539,6 +554,46 @@ export default function HistoryPage() {
                         </td>
                         <td className="px-5 py-3 whitespace-nowrap">
                           <StatusBadge status={tx.status} />
+                        </td>
+                        <td className="px-5 py-3 text-xs max-w-[200px]">
+                          {editingNoteId === tx.id ? (
+                            <div className="flex items-center gap-1">
+                              <input
+                                autoFocus
+                                maxLength={500}
+                                value={noteInput}
+                                onChange={(e) => setNoteInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") saveNote(tx.id);
+                                  if (e.key === "Escape") setEditingNoteId(null);
+                                }}
+                                className="flex-1 bg-[#0a0a0a] border border-[#c9a962] px-2 py-1 text-xs text-white focus:outline-none"
+                                aria-label="Edit note"
+                              />
+                              <button
+                                onClick={() => saveNote(tx.id)}
+                                className="text-[#c9a962] hover:text-white text-[10px] px-1"
+                                aria-label="Save note"
+                              >✓</button>
+                              <button
+                                onClick={() => setEditingNoteId(null)}
+                                className="text-[#777777] hover:text-white text-[10px] px-1"
+                                aria-label="Cancel"
+                              >✕</button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setEditingNoteId(tx.id);
+                                setNoteInput(tx.note ?? "");
+                              }}
+                              className="text-left text-[#777777] hover:text-[#c9a962] transition-colors duration-150 truncate max-w-[180px] block"
+                              title={tx.note || "Add note"}
+                              aria-label={tx.note ? `Edit note: ${tx.note}` : "Add note"}
+                            >
+                              {tx.note || <span className="text-[#444444] italic">+ add note</span>}
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}

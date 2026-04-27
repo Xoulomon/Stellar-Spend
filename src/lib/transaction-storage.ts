@@ -22,6 +22,8 @@ export interface Transaction {
   };
   status: 'pending' | 'completed' | 'failed';
   error?: string;
+  /** User-supplied note for this transaction (max 500 chars) */
+  note?: string;
 }
 
 const STORAGE_KEY = 'stellar_spend_transactions';
@@ -66,6 +68,10 @@ export class TransactionStorage {
   static clear(): void {
     if (typeof window === 'undefined') return;
     localStorage.removeItem(STORAGE_KEY);
+  }
+
+  static updateNote(id: string, note: string): void {
+    this.update(id, { note: note.slice(0, 500) });
   }
 
   static generateId(): string {
